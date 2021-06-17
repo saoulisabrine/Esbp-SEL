@@ -571,10 +571,23 @@ public:
             for (j=0; j<clause.size(); j++)
                 if (clause[j] == img)
                     break;
+                    
             if (j == clause.size())
                 return false;
         }
         return true;
+    }
+
+    bool stabilize(Lit l, const vec<Lit>& clause) const {
+        if (!permutes(l))
+            return true;
+
+        Lit img = getImage(l);
+        for (int j=0; j<clause.size(); j++)
+            if (clause[j] == img)
+                return true;
+        
+        return false;
     }
 
     void print(){

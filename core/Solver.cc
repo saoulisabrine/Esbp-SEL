@@ -1764,10 +1764,10 @@ lbool Solver::search(int nof_conflicts) {
                     return l_True;
                 }
             }
-/*
+
             if (decisionLevel() == 0)
                 computeValidSymmetriesLevelZero();
-*/
+
 
             // Increase decision level and enqueue 'next'
             newDecisionLevel();
@@ -2386,20 +2386,15 @@ CRef Solver::learntSymmetryClause(cosy::ClauseInjector::Type type, Lit p) {
     return CRef_Undef;
 }
 
-/*
-void Solver::computeValidSymmetriesLevelZero() {
-    validSymmetries.clear();
-    vec<Lit> need_stab;
-    for (int i=0; i<trail.size(); i++) {
-        if (forbid_units.find(var(trail[i])) != forbid_units.end())
-            need_stab.push(trail[i]);
-    }
 
-    for (int i=0; i<generators.size(); i++) {
-        SymGenerator* g = generators[i];
-        if (g->stabilize(need_stab))
-            //validSymmetries.insert(g);
-            forbid_units[need_stab]
+void Solver::computeValidSymmetriesLevelZero() {
+
+    for (auto unit : forbid_units){
+        for (int i=0; i<generators.size(); i++) {
+            SymGenerator* g = generators[i];
+            if (g->stabilize(mkLit(unit.first), trail)){
+                unit.second->insert(g);
+            }
+        }
     }
 }
-*/

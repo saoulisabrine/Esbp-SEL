@@ -105,9 +105,9 @@ public:
     std::unique_ptr<cosy::SymmetryController<Lit>> symmetry;
     CRef learntSymmetryClause(cosy::ClauseInjector::Type type, Lit p);
     void notifyCNFUnits();
-    //void computeValidSymmetriesLevelZero();
+    void computeValidSymmetriesLevelZero();
 
-    //std::unordered_set<SymGenerator*> validSymmetries;
+    std::unordered_set<SymGenerator*> validSymmetries;
     //std::unordered_set<Var> forbid_units;
     std::map<Glucose::Var, std::set<Glucose::SymGenerator*> *> forbid_units;
 
