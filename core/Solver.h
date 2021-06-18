@@ -378,7 +378,7 @@ protected:
     void     cancelUntil      (int level);                                             // Backtrack until a certain level.
     void     analyze          (CRef confl, vec<Lit>& out_learnt, vec<Lit> & selectors, int& out_btlevel,unsigned int &nblevels,unsigned int &szWithoutSelectors, bool &isSymmetry, std::set<SymGenerator*>* comp);    // (bt = backtrack)
     void     analyzeFinal     (Lit p, vec<Lit>& out_conflict);                         // COULD THIS BE IMPLEMENTED BY THE ORDINARIY "analyze" BY SOME REASONABLE GENERALIZATION?
-    bool     litRedundant     (Lit p, uint32_t abstract_levels);                       // (helper method for 'analyze()')
+    bool     litRedundant     (Lit p, uint32_t abstract_levels, std::vector<std::set<SymGenerator*>*> &symmetries);                       // (helper method for 'analyze()')
     lbool    search           (int nof_conflicts);                                     // Search for a given number of conflicts.
     virtual lbool    solve_           (bool do_simp = true, bool turn_off_simp = false);                                                      // Main solve method (assumptions given in 'assumptions').
     virtual void     reduceDB         ();                                                      // Reduce the set of learnt clauses.
@@ -405,7 +405,7 @@ protected:
 
     unsigned int computeLBD(const vec<Lit> & lits,int end=-1);
     unsigned int computeLBD(const Clause &c);
-    void minimisationWithBinaryResolution(vec<Lit> &out_learnt);
+    bool minimisationWithBinaryResolution(vec<Lit> &out_learnt, std::vector<std::set<SymGenerator*>*> &symmetries);
 
     virtual void     relocAll         (ClauseAllocator& to);
 
@@ -448,9 +448,9 @@ private:
     vec<SymGenerator*> selGen; // original generator for selClause
     vec<vec<int>* > selClauseWatches; // map of Lits to selClauses, being the 0th or 1st lit of a symmetric explanation clause, which is watched on becoming true.
 
-    void minimizeClause(vec<Lit>& c); // minimize clause through self-subsumption
+    void minimizeClause(vec<Lit>& c, std::vector<std::set<SymGenerator*>*> &symmetries); // minimize clause through self-subsumption
     void prepareWatches(vec<Lit>& c); // prepares watches of a (new) clause
-    CRef addClauseFromSymmetry(const Clause& from, vec<Lit>& symmetrical); // @pre: clause is unit or conflicting. Bool return value is true if the symmetrical clause is unit or conflicting. CRef return value is the conflicting clause, or CRef_Undef if the symmetrical clause is not conflicting.
+    CRef addClauseFromSymmetry(const Clause& from, vec<Lit>& symmetrical, std::vector<std::set<SymGenerator*>*> &symmetries); // @pre: clause is unit or conflicting. Bool return value is true if the symmetrical clause is unit or conflicting. CRef return value is the conflicting clause, or CRef_Undef if the symmetrical clause is not conflicting.
 
     // returns 0: conflict clause: added to learned clause store
     // returns 1: unit clause:     added to learned clause store

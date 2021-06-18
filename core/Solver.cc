@@ -572,8 +572,8 @@ inline unsigned int Solver::computeLBD(const Clause &c) {
 /******************************************************************
  * Minimisation with binary reolution
  ******************************************************************/
-void Solver::minimisationWithBinaryResolution(vec<Lit> &out_learnt) {
-    return;
+bool Solver::minimisationWithBinaryResolution(vec<Lit> &out_learnt, std::vector<std::set<SymGenerator*>*> &symmetries) {
+    
     // Find the LBD measure
     unsigned int lbd = computeLBD(out_learnt);
     Lit p = ~out_learnt[0];
@@ -587,11 +587,19 @@ void Solver::minimisationWithBinaryResolution(vec<Lit> &out_learnt) {
 
         vec<Watcher>& wbin = watchesBin[p];
         int nb = 0;
+        Watcher* ic = (Watcher*) wbin;
+       
+
         for (int k = 0; k < wbin.size(); k++) {
             Lit imp = wbin[k].blocker;
             if (permDiff[var(imp)] == MYFLAG && value(imp) == l_True) {
                 nb++;
                 permDiff[var(imp)] = MYFLAG - 1;
+                
+                Clause& c = ca[wbin[k].cref];
+
+                if(c.symmetry())
+                    symmetries.push_back(c.scompat());
             }
         }
         int l = out_learnt.size() - 1;
@@ -608,9 +616,11 @@ void Solver::minimisationWithBinaryResolution(vec<Lit> &out_learnt) {
             }
 
             out_learnt.shrink(nb);
+            return true;
 
         }
     }
+    return false;
 }
 
 // Revert to the state at given level (keeping all assignment at 'level' but not beyond).
@@ -803,9 +813,23 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt,vec<Lit>&selectors, int& o
         for (i = 1; i < out_learnt.size(); i++)
             abstract_level |= abstractLevel(var(out_learnt[i])); // (maintain an abstraction of levels involved in conflict)
 
-        for (i = j = 1; i < out_learnt.size(); i++)
-            if (reason(var(out_learnt[i])) == CRef_Undef || !litRedundant(out_learnt[i], abstract_level))
+        for (i = j = 1; i < out_learnt.size(); i++){
+             if (reason(var(out_learnt[i])) == CRef_Undef ){
                 out_learnt[j++] = out_learnt[i];
+                continue;
+             }
+             std::vector<std::set<SymGenerator*>*> l_symmetries;
+             if (litRedundant(out_learnt[i], abstract_level, l_symmetries)){
+                if(l_symmetries.size() > 0){
+                    symmetries.insert(symmetries.end(), l_symmetries.begin(), l_symmetries.end());
+                    isSymmetry =true;
+                }
+             }else{
+                   out_learnt[j++] = out_learnt[i];
+             }
+        }
+           
+                
 
     } else if (ccmin_mode == 1) {
         for (i = j = 1; i < out_learnt.size(); i++) {
@@ -837,9 +861,14 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt,vec<Lit>&selectors, int& o
       Then, we reduce clauses with small LBD.
       Otherwise, this can be useless
      */
-    // if (!incremental && out_learnt.size() <= lbSizeMinimizingClause) {
-    //     minimisationWithBinaryResolution(out_learnt);
-    // }
+    
+    if (!incremental && out_learnt.size() <= lbSizeMinimizingClause) {
+        std::vector<std::set<SymGenerator*>*> l_symmetries;
+        if (minimisationWithBinaryResolution(out_learnt, l_symmetries) && l_symmetries.size() > 0){
+            symmetries.insert(symmetries.end(), l_symmetries.begin(), l_symmetries.end());
+            isSymmetry =true;
+        }
+     }
     // Find correct backtrack level:
     //
     if (out_learnt.size() == 1)
@@ -932,6 +961,52 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt,vec<Lit>&selectors, int& o
 
 // Check if 'p' can be removed. 'abstract_levels' is used to abort early if the algorithm is
 // visiting literals at levels that cannot be removed later.
+
+bool Solver::litRedundant(Lit p, uint32_t abstract_levels, std::vector<std::set<SymGenerator*>*> &symmetries) {
+    analyze_stack.clear();
+    analyze_stack.push(p);
+
+    int top = analyze_toclear.size();
+    while (analyze_stack.size() > 0 ) {
+        assert(reason(var(analyze_stack.last())) != CRef_Undef);
+        Clause& c = ca[reason(var(analyze_stack.last()))];
+        if (c.symmetry()) {
+            symmetries.push_back(c.scompat());
+        }
+        analyze_stack.pop(); //
+        if (c.size() == 2 && value(c[0]) == l_False) {
+            assert(value(c[1]) == l_True);
+            Lit tmp = c[0];
+            c[0] = c[1], c[1] = tmp;
+        }
+
+        for (int i = 1; i < c.size(); i++) {
+            Lit p = c[i];
+            if (!seen[var(p)]) {
+                if (level(var(p)) > 0) {
+                    if (reason(var(p)) != CRef_Undef && (abstractLevel(var(p)) & abstract_levels) != 0) {
+                        seen[var(p)] = 1;
+                        analyze_stack.push(p);
+                        analyze_toclear.push(p);
+                    } else {
+                        for (int j = top; j < analyze_toclear.size(); j++)
+                            seen[var(analyze_toclear[j])] = 0;
+                        analyze_toclear.shrink(analyze_toclear.size() - top);
+                        return false;
+                    }
+                } else {
+                    if (forbid_units.find(var(p)) != forbid_units.end()) {
+                        symmetries.push_back(forbid_units[var(p)]);
+                    }
+                }
+            }
+        }
+    }    
+
+    return true;
+}
+
+/*
 bool Solver::litRedundant(Lit p, uint32_t abstract_levels) {
     analyze_stack.clear();
     analyze_stack.push(p);
@@ -987,6 +1062,7 @@ bool Solver::litRedundant(Lit p, uint32_t abstract_levels) {
     return true;
 }
 
+*/
 
 /*_________________________________________________________________________________________________
 |
@@ -1037,8 +1113,8 @@ void Solver::uncheckedEnqueue(Lit p, CRef from) {
 
     if (decisionLevel() == 0 && from != CRef_Undef) {
         const Clause& c = ca[from];
-        std::vector<std::set<SymGenerator*>*> symmetries;
         
+        std::vector<std::set<SymGenerator*>*> symmetries;
         if(c.symmetry()){
             symmetries.push_back(c.scompat());
         }
@@ -1279,8 +1355,8 @@ NextClause:
 
             // create new learned clause
             selGen[currentclause]->getSymmetricalClause(ca[reason(selProp[currentclause])], symmetrical);
-
-            minimizeClause(symmetrical);
+            std::vector<std::set<SymGenerator*>*> l_symmetries;
+            minimizeClause(symmetrical, l_symmetries);
             if(symmetrical.size() < 2){
                 assert(symmetrical.size()==1);
                 cancelUntil(0);
@@ -1298,7 +1374,7 @@ NextClause:
             prepareWatches(symmetrical);
 
             assert(value(symmetrical[1])==l_False);
-            confl = addClauseFromSymmetry(ca[reason(selProp[currentclause])], symmetrical);
+            confl = addClauseFromSymmetry(ca[reason(selProp[currentclause])], symmetrical, l_symmetries);
             if(confl==CRef_Undef){ // unit clause
                 ++symselprops;
                 goto StartPropagate; // TODO: fix useless iteration over previous watches (i)
@@ -1351,8 +1427,9 @@ NextClause:
 
             int result = addSelClause(g, currentGenLit);
             if(result < 2){ // either conflict or unit clause
+                std::vector<std::set<SymGenerator*>*> l_symmetries;
                 g->getSymmetricalClause(ca[reason_cgl], symmetrical);
-                minimizeClause(symmetrical);
+                minimizeClause(symmetrical, l_symmetries);
 
                 if(symmetrical.size()<2){
                     assert(symmetrical.size()==1);
@@ -1370,7 +1447,7 @@ NextClause:
                 assert(symmetrical.size()>1);
                 prepareWatches(symmetrical);
                 assert(value(symmetrical[1])==l_False);
-                confl = addClauseFromSymmetry(ca[reason_cgl], symmetrical);
+                confl = addClauseFromSymmetry(ca[reason_cgl], symmetrical, l_symmetries);
 
                 assert(result==0 | confl==CRef_Undef); // propagating result should lead to undef clause
                 // NOTE: it is possible that (confl==CRef_Undef) & (result==0), if the symmetrical clause was a unit clause at some level, but has been made conflicting at a higher level. We treat this as a unit clause
@@ -1693,7 +1770,7 @@ lbool Solver::search(int nof_conflicts) {
                 assert(ca[cr].symmetry() == isSymmetry);
                 ca[cr].setLBD(nblevels);
                 ca[cr].setOneWatched(false);
-		ca[cr].setSizeWithoutSelectors(szWithoutSelectors);
+		        ca[cr].setSizeWithoutSelectors(szWithoutSelectors);
                 if (nblevels <= 2) nbDL2++; // stats
                 if (ca[cr].size() == 2) nbBin++; // stats
                 learnts.push(cr);
@@ -2147,11 +2224,12 @@ void Solver::prepareWatches(vec<Lit>& c){
 
 // minimize clause through self-subsumption
 // NOTE: some clauses at level 0 have no unit clause as reason, so ugly code ahead
-void Solver::minimizeClause(vec<Lit>& cl){
+void Solver::minimizeClause(vec<Lit>& cl, std::vector<std::set<SymGenerator*>*> &symmetries){
     vec<int> minimizeTmpVec;
     vec<Lit> copyCl;
-    copyCl.growTo(cl.size());
+    //copyCl.growTo(cl.size());
     minimizeTmpVec.growTo(cl.size());
+    /*
     for(int i=0; i<cl.size(); ++i){
         copyCl[i] = cl[i];
         int vcli = var(cl[i]);
@@ -2159,27 +2237,30 @@ void Solver::minimizeClause(vec<Lit>& cl){
         assert(seen[vcli]==0);
         seen[vcli]=1; // mark as seen
     }
-
-    bool isSymmetry = false;
+    */
+    //bool isSymmetry = false;
     for(int i=0; i<cl.size() && cl.size()>1; ++i) {
         if(value(cl[i])!=l_False){
             continue;
         }
         if(level(var(cl[i]))==0){
             if (forbid_units.find(var(cl[i])) != forbid_units.end()) {
-                isSymmetry = true;
-                break;
+                symmetries.push_back(forbid_units[var(cl[i])]);
+                //isSymmetry = true;
+                //break;
             }
             cl.swapErase(i);
             --i;
+           
         }else if(reason(var(cl[i]))!=CRef_Undef){
             const Clause& expl = ca[reason(var(cl[i]))];
             bool allSeen = true;
             for(int j=0; j<expl.size(); ++j){
                 int var_j = var(expl[j]);
                 if (forbid_units.find(var_j) != forbid_units.end()) {
-                    isSymmetry = true;
-                    break;
+                    symmetries.push_back(forbid_units[var_j]);
+                    //isSymmetry = true;
+                    //break;
                 }
 
                 if(level(var_j)!=0 && !seen[var_j]){
@@ -2189,19 +2270,19 @@ void Solver::minimizeClause(vec<Lit>& cl){
             }
             if(allSeen) {
                 if (expl.symmetry()) {
-                    isSymmetry = true;
-                    break;
+                    //isSymmetry = true;
+                    symmetries.push_back(expl.scompat());
+                    //break;
                 }
-
                 cl.swapErase(i);
-                --i;
+                --i;                
             }
         }
     }
     for(int i=0; i<minimizeTmpVec.size(); ++i){ // reset seen
         seen[minimizeTmpVec[i]]=0;
     }
-
+/*
     if (isSymmetry) {
         cl.clear();
         cl.growTo(copyCl.size());
@@ -2209,13 +2290,48 @@ void Solver::minimizeClause(vec<Lit>& cl){
             cl[i] = copyCl[i];
         }
     }
+*/
 }
 
 // NOTE: sometimes backtracks to add unit clause instead of conflict clause
-CRef Solver::addClauseFromSymmetry(const Clause& from, vec<Lit>& symmetrical){
+CRef Solver::addClauseFromSymmetry(const Clause& from, vec<Lit>& symmetrical, std::vector<std::set<SymGenerator*>*> &symmetries){
     assert(symmetrical.size() > 0);
+    CRef cr;
+    if(symmetries.size() == 0)
+        cr = ca.alloc(symmetrical, true, false, false, from.symmetry(), from.scompat());
+    else{
+        symmetries.push_back(from.scompat());
+        std::set<Glucose::SymGenerator*> *comp = new std::set<SymGenerator*>();
+            for (std::set<SymGenerator*>* check : symmetries) {
+                if (check->empty()) {
+                    comp->clear();
+                    break;
+                }
 
-    CRef cr = ca.alloc(symmetrical, true, false, false, from.symmetry(), from.scompat());
+                if (comp->empty()) {
+                    comp->insert(check->begin(), check->end());
+                    continue;
+                }
+
+                // make intersection with c in place on comp
+                std::set<SymGenerator*>::iterator it1 = comp->begin();
+                std::set<SymGenerator*>::iterator it2 = check->begin();
+                while ( (it1 != comp->end()) && (it2 != check->end()) ) {
+                    if (*it1 < *it2) {
+                        comp->erase(it1++);
+                    } else if (*it2 < *it1) {
+                        ++it2;
+                    } else { // *it1 == *it2
+                        ++it1;
+                        ++it2;
+                    }
+                }
+                comp->erase(it1, comp->end());
+                if (comp->empty())
+                    break;
+            }
+        cr = ca.alloc(symmetrical, true, false, false, from.symmetry(), comp);
+    }
     ca[cr].setOneWatched(false);
 	  //ca[cr].setSizeWithoutSelectors(szWithoutSelectors); // TODO: Is this code needed? What does it do?
     learnts.push(cr);
@@ -2388,13 +2504,13 @@ CRef Solver::learntSymmetryClause(cosy::ClauseInjector::Type type, Lit p) {
 
 
 void Solver::computeValidSymmetriesLevelZero() {
-
     for (auto unit : forbid_units){
         for (int i=0; i<generators.size(); i++) {
             SymGenerator* g = generators[i];
-            if (g->stabilize(mkLit(unit.first), trail)){
+            if (unit.second->find(g) != unit.second->end())
+                continue;
+            if (g->stabilize(mkLit(unit.first), trail))
                 unit.second->insert(g);
-            }
         }
     }
 }
