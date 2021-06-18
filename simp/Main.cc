@@ -227,7 +227,7 @@ int main(int argc, char** argv)
         std::string cnf_file = std::string(argv[1]);
         std::string sym_file_bliss = cnfloc + ".bliss";
         std::string symloc = cnfloc + ".sym";
-/*
+
         if (opt_bliss) {
             S.symmetry = std::unique_ptr<cosy::SymmetryController<Glucose::Lit>>
                 (new cosy::SymmetryController<Glucose::Lit>
@@ -242,8 +242,8 @@ int main(int argc, char** argv)
         } else {
             S.symmetry = nullptr;
         }
-*/
-        S.symmetry = nullptr;
+
+//        S.symmetry = nullptr;
         S.notifyCNFUnits();
 
         gzFile in_sym = (argc == 1) ? gzdopen(0, "rb") : opt_breakid ? gzopen(symloc.c_str(), "rb") : gzopen(sym_file_bliss.c_str(), "rb");

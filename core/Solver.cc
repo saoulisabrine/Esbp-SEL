@@ -2300,6 +2300,9 @@ CRef Solver::addClauseFromSymmetry(const Clause& from, vec<Lit>& symmetrical, st
     if(symmetries.size() == 0)
         cr = ca.alloc(symmetrical, true, false, false, from.symmetry(), from.scompat());
     else{
+	if(from.scompat() != NULL){
+            symmetries.push_back(from.scompat());
+        }
         symmetries.push_back(from.scompat());
         std::set<Glucose::SymGenerator*> *comp = new std::set<SymGenerator*>();
             for (std::set<SymGenerator*>* check : symmetries) {
