@@ -869,6 +869,7 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt,vec<Lit>&selectors, int& o
             isSymmetry =true;
         }
      }
+     
     // Find correct backtrack level:
     //
     if (out_learnt.size() == 1)
@@ -1362,6 +1363,46 @@ NextClause:
                 cancelUntil(0);
                 if(value(symmetrical[0])==l_Undef){ // unit clause
                     ++symselprops;
+
+		    
+		    if( c.symmetry() || l_symmetries.size()){
+		    	if(c.scompat() != NULL){
+	                	l_symmetries.push_back(c.scompat());
+        	    	}
+      		    	std::set<Glucose::SymGenerator*> *comp = new std::set<SymGenerator*>();
+            	    	for (std::set<SymGenerator*>* check : l_symmetries) {
+               	    		if (check->empty()) {
+                      			comp->clear();
+                     			 break;
+                   		 }
+
+                   		if (comp->empty()) {
+                     			comp->insert(check->begin(), check->end());
+                     			continue;
+                   		}
+
+                   		// make intersection with c in place on comp
+                   		std::set<SymGenerator*>::iterator it1 = comp->begin();
+                   		std::set<SymGenerator*>::iterator it2 = check->begin();
+                   		while ( (it1 != comp->end()) && (it2 != check->end()) ) {
+                      			if (*it1 < *it2) {
+                         			comp->erase(it1++);
+                      			} else if (*it2 < *it1) {
+                        			++it2;
+                      			} else { // *it1 == *it2
+                        			++it1;
+                       				 ++it2;
+                      			}
+                   		}
+                   		comp->erase(it1, comp->end());
+                   		if (comp->empty())
+                      			break;
+                  	}
+			forbid_units.insert(std::pair<Glucose::Var, std::set<Glucose::SymGenerator*>*>(var(symmetrical[0]), comp));
+
+		    }
+
+
                     uncheckedEnqueue(symmetrical[0]);
                     goto StartPropagate;
                 } else if (value(symmetrical[0])==l_False){ // conflict clause
@@ -1436,6 +1477,43 @@ NextClause:
                     cancelUntil(0);
                     if(value(symmetrical[0])==l_Undef){ // unit clause
                         ++symgenprops;
+			if( c.symmetry() || l_symmetries.size()){
+                        if(c.scompat() != NULL){
+                                l_symmetries.push_back(c.scompat());
+                        }
+                        std::set<Glucose::SymGenerator*> *comp = new std::set<SymGenerator*>();
+                        for (std::set<SymGenerator*>* check : l_symmetries) {
+                                if (check->empty()) {
+                                        comp->clear();
+                                         break;
+                                 }
+
+                                if (comp->empty()) {
+                                        comp->insert(check->begin(), check->end());
+                                        continue;
+                                }
+
+                                // make intersection with c in place on comp
+                                std::set<SymGenerator*>::iterator it1 = comp->begin();
+                                std::set<SymGenerator*>::iterator it2 = check->begin();
+                                while ( (it1 != comp->end()) && (it2 != check->end()) ) {
+                                        if (*it1 < *it2) {
+                                                comp->erase(it1++);
+                                        } else if (*it2 < *it1) {
+                                                ++it2;
+                                        } else { // *it1 == *it2
+                                                ++it1;
+                                                 ++it2;
+                                        }
+                                }
+                                comp->erase(it1, comp->end());
+                                if (comp->empty())
+                                        break;
+                        }
+                        forbid_units.insert(std::pair<Glucose::Var, std::set<Glucose::SymGenerator*>*>(var(symmetrical[0]), comp));
+
+                    }
+
                         uncheckedEnqueue(symmetrical[0]);
                         goto StartPropagate;
                     } else if (value(symmetrical[0])==l_False){ // conflict clause
@@ -1909,11 +1987,11 @@ lbool Solver::solve_(bool do_simp, bool turn_off_simp) // Parameters are useless
             Lit l = literals[0];
             std::set<Glucose::SymGenerator*> *sym = new std::set<SymGenerator*>();
             if (value(l) == l_Undef) {
-                vec<Lit> clause(1, l);
-                
+                //vec<Lit> clause(1, l);
+               
                for (int i=0; i<generators.size(); i++) {
                     SymGenerator* g = generators[i];
-                    if (g->stabilize(clause))
+                    if (g->stabilize(l,trail))
                         sym->insert(g);
                 }
                 //forbid_units.insert(var(l));
@@ -2225,20 +2303,16 @@ void Solver::prepareWatches(vec<Lit>& c){
 // minimize clause through self-subsumption
 // NOTE: some clauses at level 0 have no unit clause as reason, so ugly code ahead
 void Solver::minimizeClause(vec<Lit>& cl, std::vector<std::set<SymGenerator*>*> &symmetries){
+    
     vec<int> minimizeTmpVec;
-    vec<Lit> copyCl;
-    //copyCl.growTo(cl.size());
     minimizeTmpVec.growTo(cl.size());
-    /*
+    
     for(int i=0; i<cl.size(); ++i){
-        copyCl[i] = cl[i];
         int vcli = var(cl[i]);
         minimizeTmpVec[i]=vcli;
         assert(seen[vcli]==0);
         seen[vcli]=1; // mark as seen
     }
-    */
-    //bool isSymmetry = false;
     for(int i=0; i<cl.size() && cl.size()>1; ++i) {
         if(value(cl[i])!=l_False){
             continue;
@@ -2246,8 +2320,6 @@ void Solver::minimizeClause(vec<Lit>& cl, std::vector<std::set<SymGenerator*>*> 
         if(level(var(cl[i]))==0){
             if (forbid_units.find(var(cl[i])) != forbid_units.end()) {
                 symmetries.push_back(forbid_units[var(cl[i])]);
-                //isSymmetry = true;
-                //break;
             }
             cl.swapErase(i);
             --i;
@@ -2257,12 +2329,6 @@ void Solver::minimizeClause(vec<Lit>& cl, std::vector<std::set<SymGenerator*>*> 
             bool allSeen = true;
             for(int j=0; j<expl.size(); ++j){
                 int var_j = var(expl[j]);
-                if (forbid_units.find(var_j) != forbid_units.end()) {
-                    symmetries.push_back(forbid_units[var_j]);
-                    //isSymmetry = true;
-                    //break;
-                }
-
                 if(level(var_j)!=0 && !seen[var_j]){
                     allSeen = false;
                     break;
@@ -2270,9 +2336,7 @@ void Solver::minimizeClause(vec<Lit>& cl, std::vector<std::set<SymGenerator*>*> 
             }
             if(allSeen) {
                 if (expl.symmetry()) {
-                    //isSymmetry = true;
                     symmetries.push_back(expl.scompat());
-                    //break;
                 }
                 cl.swapErase(i);
                 --i;                
@@ -2282,15 +2346,6 @@ void Solver::minimizeClause(vec<Lit>& cl, std::vector<std::set<SymGenerator*>*> 
     for(int i=0; i<minimizeTmpVec.size(); ++i){ // reset seen
         seen[minimizeTmpVec[i]]=0;
     }
-/*
-    if (isSymmetry) {
-        cl.clear();
-        cl.growTo(copyCl.size());
-        for (int i=0; i<copyCl.size() ; i++) {
-            cl[i] = copyCl[i];
-        }
-    }
-*/
 }
 
 // NOTE: sometimes backtracks to add unit clause instead of conflict clause
@@ -2332,7 +2387,7 @@ CRef Solver::addClauseFromSymmetry(const Clause& from, vec<Lit>& symmetrical, st
                 if (comp->empty())
                     break;
             }
-        cr = ca.alloc(symmetrical, true, false, false, from.symmetry(), comp);
+        cr = ca.alloc(symmetrical, true, false, false, true, comp);
     }
     ca[cr].setOneWatched(false);
 	  //ca[cr].setSizeWithoutSelectors(szWithoutSelectors); // TODO: Is this code needed? What does it do?

@@ -283,14 +283,16 @@ int main(int argc, char** argv)
         signal(SIGXCPU,SIGINT_interrupt);
 
         S.parsing = 0;
-        if(pre/* && !S.isIncremental()*/) {
-	  printf("c | Preprocesing is fully done\n");
-	  S.eliminate(true);
-        double simplified_time = cpuTime();
-        if (S.verbosity > 0){
-            printf("c |  Simplification time:  %12.2f s                                                                 |\n", simplified_time - parsed_time);
- }
-	}
+        
+    //    if(pre/* && !S.isIncremental()*/) {
+    //        printf("c | Preprocesing is fully done\n");
+    //        S.eliminate(true);
+    //        double simplified_time = cpuTime();
+    //       if (S.verbosity > 0){
+    //            printf("c |  Simplification time:  %12.2f s                                                                 |\n", simplified_time - parsed_time);
+    //        }
+	//    }
+       
 	printf("c |                                                                                                       |\n");
         if (!S.okay()){
             if (S.certifiedUNSAT) fprintf(S.certifiedOutput, "0\n"), fclose(S.certifiedOutput);
