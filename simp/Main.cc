@@ -283,6 +283,7 @@ int main(int argc, char** argv)
         signal(SIGXCPU,SIGINT_interrupt);
 
         S.parsing = 0;
+<<<<<<< HEAD
 
         if(pre/* && !S.isIncremental()*/) {
 	  printf("c | Preprocesing is fully done\n");
@@ -291,7 +292,30 @@ int main(int argc, char** argv)
         if (S.verbosity > 0){
             printf("c |  Simplification time:  %12.2f s                                                                 |\n", simplified_time - parsed_time);
        }
+=======
+<<<<<<< HEAD
+
+        if(pre/* && !S.isIncremental()*/) {
+            printf("c | Preprocesing is fully done\n");
+            S.eliminate(true);
+            double simplified_time = cpuTime();
+            if (S.verbosity > 0){
+                printf("c |  Simplification time:  %12.2f s                                                                 |\n", simplified_time - parsed_time);
+        }
+>>>>>>> f6706e21e1742bb27a617d0b057e722873809a08
 	}
+=======
+        
+    //    if(pre/* && !S.isIncremental()*/) {
+    //        printf("c | Preprocesing is fully done\n");
+    //        S.eliminate(true);
+    //        double simplified_time = cpuTime();
+    //       if (S.verbosity > 0){
+    //            printf("c |  Simplification time:  %12.2f s                                                                 |\n", simplified_time - parsed_time);
+    //        }
+	//    }
+       
+>>>>>>> 24c84a212159ebe3432f4993753a9dab985542ab
 	printf("c |                                                                                                       |\n");
         if (!S.okay()){
             if (S.certifiedUNSAT) fprintf(S.certifiedOutput, "0\n"), fclose(S.certifiedOutput);
