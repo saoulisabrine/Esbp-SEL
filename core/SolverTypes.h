@@ -620,6 +620,14 @@ public:
             out_clause[i]=getImage(in_clause[i]);
         }
     }
+    void getSymmetricalClause(const vec<Lit>& in_clause, vec<Lit>& out_clause){
+        out_clause.clear();
+        out_clause.growTo(in_clause.size());
+        for(int i=0; i<in_clause.size(); ++i){
+            out_clause[i]=getImage(in_clause[i]);
+        }
+    }
+
 };
 
 }

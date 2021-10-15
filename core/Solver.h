@@ -103,7 +103,7 @@ public:
     // Symmetry
     //
     std::unique_ptr<cosy::SymmetryController<Lit>> symmetry;
-    CRef learntSymmetryClause(cosy::ClauseInjector::Type type, Lit p);
+    CRef learntSymmetryClause(cosy::ClauseInjector::Type type, Lit p,bool&);
     void notifyCNFUnits();
     void computeValidSymmetriesLevelZero();
 
@@ -472,6 +472,7 @@ public:
 
     void printClause(const vec<Lit>& cl){
         for(int64_t i=0; i<cl.size(); ++i){
+		/*
             char val = 'a';
             if(value(cl[i])==l_Undef){
                 val = 'u';
@@ -482,9 +483,10 @@ public:
             }else{
                 val = 'x';
             }
-            printf("%d|%c:%d ",toInt(cl[i]),val,level(var(cl[i])));
+	    */
+            printf("%s%d ", value(var(cl[i]))==l_True?"":"-", var(cl[i]) +1 );
         }
-        printf("\n");
+        printf("0 \n");
     }
 };
 
