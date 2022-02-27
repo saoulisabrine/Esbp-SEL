@@ -19,21 +19,21 @@
 ## Building
 -------
 `cd sat_symmetry`
+
 `source .env`
+
 `make third_party`
+
 `make`
 
 `cd ../simp`  
+
 `make rs`
 ## Running
 ------
-### BLISS:
+**BLISS**: `./simp/runner/esbp_sel CNF_FILE bliss `
 
-`./simp/runner/esbp_sel CNF_FILE bliss `
-
-### SAUCY:
-
-`./simp/runner/esbp_sel CNF_FILE saucy `
+**SAUCY**: `./simp/runner/esbp_sel CNF_FILE saucy `
 
 ## Information:
 `./glucose --help`  
