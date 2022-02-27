@@ -1,7 +1,8 @@
-Implementation of Symmetric Explanation Learning (SEL) in Glucose 4.0
+=====================================================================
+# Implementation of ESBP_SEL a SAT solver Symmetric Explanation Learning (SEL) with Cosy library.
 =====================================================================
 
-Directory overview:
+## Directory overview:
 -------------------
 
 `core/` A core version of the solver glucose (no main here)  
@@ -15,24 +16,24 @@ Directory overview:
 `LICENCE`  
 `Changelog`  
 
-To build (release version: without assertions, statically linked, etc):
------------------------------------------------------------------------
+## Building
+-------
+`cd sat_symmetry`
+`source .env`
+`make third_party`
+`make`
 
-`cd simp`  
-`make rs`  
-(Like MiniSat...)  
-
-Usage:
+`cd ../simp`  
+`make rs`
+## Running
 ------
+### BLISS:
 
-info: `./glucose --help`  
-run: `./glucose testfiles/holes/hole002.cnf`  
-run with symmetry: `./glucose testfiles/holes/hole002.cnf` (Glucose automatically  searches for the file `testfiles/holes/hole002.cnf.sym`  
+`./simp/runner/esbp_sel CNF_FILE bliss `
 
-Branches:
----------
+### SAUCY:
 
-`master`: master branch with implementation of SEL  
-`sym-learning-scheme`: branch with implementation of Symmetrical Learning Scheme (SLS)  
-`full-intch-prop`: experimental branch  
-`strongMinimization`: experimental branch  
+`./simp/runner/esbp_sel CNF_FILE saucy `
+
+## Information:
+`./glucose --help`  
