@@ -18,17 +18,14 @@
 
 ## Building
 -------
-`cd sat_symmetry`
-
-`source .env`
-
-`make third_party`
-
-`make`
-
-`cd ../simp`  
-
-`make rs`
+```bash
+cd sat_symmetry
+source .env
+make third_party
+make
+cd ../simp
+make rs
+```
 ## Running
 ------
 **BLISS**: `./simp/runner/esbp_sel bliss CNF_FILE `
