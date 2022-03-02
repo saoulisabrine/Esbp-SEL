@@ -29,10 +29,12 @@ make rs
 ## Running
 ------
 **BLISS**: ```bash 
-            ./simp/runner/esbp_sel bliss CNF_FILE ```
+            ./simp/runner/esbp_sel bliss CNF_FILE 
+            ```
 
 **SAUCY**: ```bash
-            ./simp/runner/esbp_sel saucy CNF_FILE ```
+            ./simp/runner/esbp_sel saucy CNF_FILE 
+            ```
 
 ## Information:
 ```bash
