@@ -1010,63 +1010,6 @@ bool Solver::litRedundant(Lit p, uint32_t abstract_levels, std::vector<std::set<
     return true;
 }
 
-/*
-bool Solver::litRedundant(Lit p, uint32_t abstract_levels) {
-    analyze_stack.clear();
-    analyze_stack.push(p);
-
-    bool esbp = false;
-
-    int top = analyze_toclear.size();
-    while (analyze_stack.size() > 0 && !esbp) {
-        assert(reason(var(analyze_stack.last())) != CRef_Undef);
-        Clause& c = ca[reason(var(analyze_stack.last()))];
-        if (c.symmetry()) {
-            esbp = true;
-            break;
-        }
-        analyze_stack.pop(); //
-        if (c.size() == 2 && value(c[0]) == l_False) {
-            assert(value(c[1]) == l_True);
-            Lit tmp = c[0];
-            c[0] = c[1], c[1] = tmp;
-        }
-
-        for (int i = 1; i < c.size(); i++) {
-            Lit p = c[i];
-            if (!seen[var(p)]) {
-                if (level(var(p)) > 0) {
-                    if (reason(var(p)) != CRef_Undef && (abstractLevel(var(p)) & abstract_levels) != 0) {
-                        seen[var(p)] = 1;
-                        analyze_stack.push(p);
-                        analyze_toclear.push(p);
-                    } else {
-                        for (int j = top; j < analyze_toclear.size(); j++)
-                            seen[var(analyze_toclear[j])] = 0;
-                        analyze_toclear.shrink(analyze_toclear.size() - top);
-                        return false;
-                    }
-                } else {
-                    if (forbid_units.find(var(p)) != forbid_units.end()) {
-                        esbp = true;
-                        break;
-                    }
-                }
-            }
-        }
-    }
-
-    if (esbp) {
-        for (int j = top; j < analyze_toclear.size(); j++)
-            seen[var(analyze_toclear[j])] = 0;
-        analyze_toclear.shrink(analyze_toclear.size() - top);
-        return false;
-    }
-
-    return true;
-}
-
-*/
 
 /*_________________________________________________________________________________________________
 |
@@ -1805,7 +1748,6 @@ lbool Solver::search(int nof_conflicts) {
                         (int) nbReduceDB, nLearnts(), (int) nbDL2, (int) nbRemovedClauses, progressEstimate()*100);
             }
             if (decisionLevel() == 0) {
-		printf("Je suis ici \n");
                 return l_False;
 
             }
@@ -1842,7 +1784,6 @@ lbool Solver::search(int nof_conflicts) {
 
             if (learnt_clause.size() == 1) {
                 if (isSymmetry) {
-                    //forbid_units.insert(var(learnt_clause[0]));
                     forbid_units.insert(std::pair<Glucose::Var, std::set<Glucose::SymGenerator*>*>(var(learnt_clause[0]), comp));
                 }
                 uncheckedEnqueue(learnt_clause[0]);
@@ -2004,7 +1945,6 @@ lbool Solver::solve_(bool do_simp, bool turn_off_simp) // Parameters are useless
                     if (g->stabilize(l,trail))
                         sym->insert(g);
                 }
-                //forbid_units.insert(var(l));
                 forbid_units.insert(std::pair<Glucose::Var, std::set<Glucose::SymGenerator*>*>(var(l), sym));
                 uncheckedEnqueue(l);
             }
@@ -2554,17 +2494,13 @@ CRef Solver::learntSymmetryClause(cosy::ClauseInjector::Type type, Lit p, bool& 
                 std::swap(sbp[0], sbp[max_i]);
 
             std::set<SymGenerator*> * comp = new std::set<SymGenerator*>();
-
-	  //  printClause(sbp);
 	  
           for (int i=0; i<generators.size(); i++) {
                 SymGenerator *g = generators[i];
 
                 if (g->stabilize(sbp)){
                     comp->insert(g);
-	//	    vec<Lit> sym;
-	//	    g->getSymmetricalClause(sbp,sym);
-	//	    printClause(sym);
+	
 		    }
             }
             if(sbp.size() != 1){

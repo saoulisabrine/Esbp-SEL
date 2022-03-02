@@ -108,7 +108,6 @@ public:
     void computeValidSymmetriesLevelZero();
 
     std::unordered_set<SymGenerator*> validSymmetries;
-    //std::unordered_set<Var> forbid_units;
     std::map<Glucose::Var, std::set<Glucose::SymGenerator*> *> forbid_units;
 
     void updateNotifySEL(Lit p);

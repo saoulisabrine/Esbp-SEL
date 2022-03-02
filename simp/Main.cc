@@ -243,7 +243,6 @@ int main(int argc, char** argv)
             S.symmetry = nullptr;
         }
 
-//        S.symmetry = nullptr;
         S.notifyCNFUnits();
 
         gzFile in_sym = (argc == 1) ? gzdopen(0, "rb") : opt_breakid ? gzopen(symloc.c_str(), "rb") : gzopen(sym_file_bliss.c_str(), "rb");
