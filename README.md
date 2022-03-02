@@ -1,20 +1,18 @@
-=====================================================================
-# Implementation of ESBP_SEL a SAT solver Symmetric Explanation Learning (SEL) with Cosy library.
-=====================================================================
+================================================================================================================
+# Implementation of ESBP_SEL a SAT solver combining Symmetric Explanation Learning (SEL) and Effective Symmetry Breaking Predicates (ESBP).
+================================================================================================================
 
 ## Directory overview:
 -------------------
 
-`core/` A core version of the solver glucose (no main here)  
-`experiments/` An extended solver with simplification capabilities  
+`core/` A core version of the solver 
 `mtl/` MiniSat Template Library  
-`parallel/` A multicore version of glucose **! Not compatible with SEL ! **  
+`sat_symmetry/` A library for ESBP
 `simp/` An extended solver with simplification capabilities  
-`testfiles/` Some test cnfs with a corresponding symmetry file  
 `utils/` MiniSat util files  
-`README`  
+`Changelog`    
 `LICENCE`  
-`Changelog`  
+`README`    
 
 ## Building
 -------
@@ -30,12 +28,14 @@ make rs
 ------
 **BLISS**: 
 ```bash 
-   ./simp/runner/esbp_sel bliss CNF_FILE 
+    cd simp/
+   ./runner/esbp_sel.sh bliss CNF_FILE 
 ```
 
 **SAUCY**: 
 ```bash
-    ./simp/runner/esbp_sel saucy CNF_FILE 
+    cd simp/
+    ./runner/esbp_sel.sh saucy CNF_FILE 
 ```
 
 ## Information:
