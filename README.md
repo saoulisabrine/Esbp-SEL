@@ -5,8 +5,8 @@
 ## Directory overview:
 -------------------
 
-`core/` A core version of the solver 
-`mtl/` MiniSat Template Library  
+`core/` A core version of the solver
+`mtl/` MiniSat Template Library
 `sat_symmetry/` A library for ESBP
 `simp/` An extended solver with simplification capabilities  
 `utils/` MiniSat util files  
